@@ -1,0 +1,137 @@
+
+docker version
+
+docker ps -a    				- список запущенных и остановленных контейнеров
+docker ps      					- список запущенных контейнеров
+
+docker images					- список всех образов локально на компьютере
+
+docker run <name of image>		- запуск контейнера из image (если есть такой образ локально, то запустится он, 
+								если нет, то будет поиск в docker hub (hub.docker.com))
+								
+docker run -d <name of image>	- запуск контейнера в фоновом режиме (d - detached)							
+docker run -d --name my_container <name of image>	- запуск контейнера в фоновом режиме (d - detached)	с именем my_container						
+docker run -d -p 8080:80 <name of image>	- запуск контейнера с пробросом портов (внешний:внутренний)	в фоновом режиме
+												-p (ports)
+
+docker run -v ${PWD}:<container path> <name of image>	- запуск контейнера с заменой 
+															содержимым текущего каталога (echo ${PWD}) на локальной машине в контейнере
+															-v - подключение тома (volume)
+															--rm (автоматическое удаление контейнера после остановки)
+
+docker run --memory = 100m --memory-swap=100m --cpus 2 <ID image>	- запуск контейнера с ограничение параметров
+																		максимум памяти 100Мб (HEAP), SWAP max 100М, использовать 2 процессора
+																		Это ограничение для КОНТЕЙНЕРА, а не для приложения внутри!
+			
+								
+docker pull <name of image>:<version>     - скачать образ из repo
+
+docker rm <ID container>		- остановить контейнер в с таким - то ID
+
+-i (interactive) -t (terminal)  - ключи подключения к контейнеру
+
+docker stop <ID container>		- остановить контейнер
+
+docker container prune			- удалить все остановленные контейнеры
+
+docker container inspect <id container> - посмотреть детали запущенного контейнера
+docker container inspect <id container> | grep IPAddress - посмотреть детали запущенного контейнера - IPAddress
+
+docker kill <ID container>		- мгновенно остановить контейнер
+
+docker exec -it <ID container> bash	- запуск нового процесса внутри контейнера, bash - программа
+
+docker logs <ID container>		- просмотр логов работы контейнера
+docker logs <ID container> --follow	- просмотр логов работы контейнера в реальном времени
+
+docker stats					- статистика работы запущенных контейнеров
+
+_____________________________________________________
+
+Dockerfile						- файл для создания своего образа. Содержит инструкции для создания образа.
+
+FROM pyton:alpine				- Имя базового образа и тэг (версия) базового образ
+WORKDIR /app					- Рабочая директория внутри образа (рекомендуется все файлы размещать в подпапках)
+COPY . .						- Копируем все файлы из локальной папки в WORKDIR внутри образа
+CMD ["pyton", "main.py"]		- Какая команда будет выполнена поле создания образа
+
+_____________________________________________________
+
+docker build .					- создание собственного образа, запускать командлет из папки,в котором лежит файл Dockerfile
+docker build . -t my-image:4.2.1- создание собственного образа с названием my-image и тэгом 4:2:1
+
+
+
+_____________________________________________________
+
+Docker Compose					- запуск нескольких контейнеров
+
+docker-compose.yml
+
+version '3'
+
+services:
+	app:						- название сервиса
+		build: ./app			- создание образа
+		
+	mongo:						- название сервиса	
+		image: mongo			- запуск официально образа mongo
+		
+
+docker-compose up				- запуск сервисов из docker-compose
+docker-compose up -d			- запуск сервисов из docker-compose -detached
+docker-compose down				- остановка сервисов из docker-compose и удалить остановленые контейнеры
+
+docker-compose up -d --build	- запуск сервисов из docker-compose -detached и пересобрать образы
+_____________________________________________________
+
+Dockerfile:
+
+FROM openjdk:11
+ADD target/blog-api-docker.jar blog-api-docker.jar
+ENTRYPOINT ["java", "-jar","blog-api-docker.jar"]
+EXPOSE 8080
+_______
+
+Build docker image from JAR file:
+
+$ docker build -t blog-api-docker.jar .
+_______
+
+docker-compose.yml:
+
+version: '3.1'
+services:
+  API:
+    image: 'blog-api-docker.jar'
+    ports:
+      - "8080:8080"
+    depends_on:
+      PostgreSQL:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://PostgreSQL:5432/postgres
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+
+  PostgreSQL:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+
+	
+
+
+
